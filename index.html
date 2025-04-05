@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>條碼掃描系統</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- 登入頁面 -->
+        <div id="loginPage" class="page">
+            <div class="login-container">
+                <h1>歡迎使用條碼掃描系統</h1>
+                <button id="googleLoginBtn" class="btn-google">
+                    <img src="assets/google-icon.svg" alt="Google Logo">
+                    使用 Google 帳號登入
+                </button>
+            </div>
+        </div>
+
+        <!-- 主頁面 -->
+        <div id="mainPage" class="page hidden">
+            <!-- 側邊欄 -->
+            <aside class="sidebar">
+                <div class="user-info">
+                    <img id="userAvatar" src="data:image/png;base64,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" alt="使用者頭像">
+                    <span id="userName">使用者名稱</span>
+                </div>
+                <nav class="nav-menu">
+                    <button class="nav-item active" data-page="official">
+                        <span class="icon">📊</span>
+                        官方資料
+                    </button>
+                    <button class="nav-item" data-page="personal">
+                        <span class="icon">📝</span>
+                        個人記錄
+                    </button>
+                    <button class="nav-item" data-page="scan">
+                        <span class="icon">📷</span>
+                        開始掃描
+                    </button>
+                    <button id="uploadButton" class="nav-item" data-page="upload">
+                        <span class="icon">📤</span>
+                        上傳資料
+                    </button>
+                    <button id="importButton" class="nav-item" data-page="import">
+                        <span class="icon">📂</span>
+                        匯入檔案
+                    </button>
+                </nav>
+                <button id="logoutBtn" class="btn-logout">
+                    <span class="icon">🚪</span>
+                    登出
+                </button>
+            </aside>
+
+            <!-- 主要內容區 -->
+            <main class="main-content">
+                <div class="content-header">
+                    <button id="toggleSidebar" class="btn-toggle">
+                        <span class="icon">☰</span>
+                    </button>
+                    <div class="search-container">
+                        <input type="text" id="searchInput" placeholder="搜尋條碼或商品名稱...">
+                        <select id="storeFilter">
+                            <option value="">所有商店</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 資料列表 -->
+                <div id="barcodeList" class="barcode-list">
+                    <!-- 資料會動態插入這裡 -->
+                </div>
+            </main>
+        </div>
+
+        <!-- 掃描頁面 -->
+        <div id="scanPage" class="scan-page hidden">
+            <div class="scan-container">
+                <div class="scan-header">
+                    <button class="btn-back">
+                        <span class="icon">←</span>
+                        返回
+                    </button>
+                    <h2>掃描條碼</h2>
+                </div>
+                <div id="reader"></div>
+                <div id="scanResult" class="scan-result hidden">
+                    <h3>掃描結果</h3>
+                    <form id="barcodeForm" class="barcode-form">
+                        <div class="form-group">
+                            <label for="name">商品名稱</label>
+                            <input type="text" id="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="code">條碼</label>
+                            <input type="text" id="code" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="price">價格</label>
+                            <input type="number" id="price" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="store">商店</label>
+                            <select id="store" required>
+                                <option value="711">7-11</option>
+                                <option value="family">全家</option>
+                                <option value="hilife">萊爾富</option>
+                                <option value="ok">OK超商</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">描述</label>
+                            <textarea id="description"></textarea>
+                        </div>
+                        <div class="form-buttons">
+                            <button type="submit" class="btn-save">儲存到本地</button>
+                            <button type="button" class="btn-cancel">取消</button>
+                            <button type="button" class="btn-rescan">重新掃描</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- 新增：暫存的條碼列表 -->
+                <div id="localBarcodeList" class="local-barcode-list">
+                    <h3>已儲存的條碼 (<span id="localBarcodeCount">0</span>)</h3>
+                    <div class="barcode-items">
+                        <!-- 動態插入暫存的條碼項目 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 修改：上傳對話框改為匯入對話框 -->
+        <div id="importModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>匯入條碼資料</h2>
+                <div class="upload-area">
+                    <input type="file" id="fileInput" accept=".csv,.xlsx" class="hidden">
+                    <div class="drop-zone" id="dropZone">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48">
+                            <path fill="none" d="M0 0h24v24H0z"/>
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                        </svg>
+                        <p>拖放檔案至此或點擊選擇檔案</p>
+                        <p class="file-hint">支援的格式：CSV、Excel</p>
+                        <p class="file-hint">注意：資料將根據您的帳號類型儲存到對應的資料庫中</p>
+                    </div>
+                </div>
+                <div class="upload-preview hidden">
+                    <h3>預覽資料</h3>
+                    <div class="preview-table"></div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn-upload" disabled>上傳</button>
+                    <button class="btn-cancel">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新增：上傳確認對話框 -->
+        <div id="uploadModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>上傳條碼資料</h2>
+                <p>確定要將本地儲存的條碼資料上傳到資料庫嗎？</p>
+                <div class="modal-buttons">
+                    <button class="btn-upload">確定上傳</button>
+                    <button class="btn-cancel">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 先載入配置 -->
+    <script src="js/config.js"></script>
+    <!-- 再載入其他 JS -->
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
